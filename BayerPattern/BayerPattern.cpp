@@ -52,6 +52,48 @@ void process( BitmapData& pData )
 	_tprintf( _T("Time: %.3f\n"), static_cast<double>( end - start ) / CLOCKS_PER_SEC );
 }
 
+// bgr
+int rggbPattern[2][2][3] = {
+    {{0, 0, 1}, {0, 1, 0}},
+    {{0, 1, 0}, {1, 0, 0}}
+};
+
+void bayer(BitmapData& pData, const int pattern[2][2][3])
+{
+    const int w = pData.Width;
+    const int h = pData.Height;
+    const int bpr = pData.Stride;
+    const int bpp = 3; // BGR24
+    BYTE *pBuffer = (BYTE *)pData.Scan0;
+
+    time_t start = clock();
+
+    int baseAdr = 0;
+    for (int y = 0; y < h; y++)
+    {
+        int pixelAdr = baseAdr;
+        for (int x = 0; x < w; x++)
+        {
+            int B = pBuffer[pixelAdr]; // blue
+            int G = pBuffer[pixelAdr + 1]; // green
+            int R = pBuffer[pixelAdr + 2]; // red
+
+            int pattern_row = y % 2;
+            int pattern_col = x % 2;
+
+            for (int c = 0; c < 3; c++) {
+                pBuffer[pixelAdr + c] *= pattern[pattern_row][pattern_col][c];
+            }
+
+            pixelAdr += bpp;
+        }
+        baseAdr += bpr;
+    }
+
+    time_t end = clock();
+    _tprintf(_T("Time: %.3f\n"), static_cast<double>(end - start) / CLOCKS_PER_SEC);
+}
+
 int GetEncoderClsid( const WCHAR* format, CLSID* pClsid )
 {
    UINT  num = 0;          // number of image encoders
@@ -107,7 +149,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		else
 			_tprintf( _T("File: %s\n"), argv[1] );
 
-		process( bmpData );
+		bayer( bmpData, rggbPattern );
 
 		GDIBitmap.UnlockBits( &bmpData );
 
